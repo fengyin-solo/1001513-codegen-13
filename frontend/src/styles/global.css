@@ -33,3 +33,22 @@ body { margin: 0; background: #f6f8fb; color: #1f2937; }
 .link { border: none; background: none; color: var(--brand); cursor: pointer; padding: 0; }
 .page-foot { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--muted); }
 .error-text { color: #b42318; }
+.notice-panel { background: #fff8e6; border: 1px solid #f0d489; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; }
+.notice-panel.warning { background: #fef3f2; border-color: #f3b7b0; }
+.notice-panel h3 { margin: 0 0 4px; font-size: 14px; }
+.notice-panel ul { margin: 4px 0 0; padding-left: 18px; }
+.notice-desc { margin: 0; color: var(--muted); font-size: 12px; }
+.dup-tags { display: flex; gap: 8px; margin-top: 6px; }
+.dup-tag { border: 1px solid #f3b7b0; background: #fff; color: #b42318; border-radius: 12px; padding: 2px 10px; cursor: pointer; font-size: 12px; }
+.dup-row { background: #fff5f5; }
+.dup-code { color: #b42318; font-weight: 600; }
+.batch-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.batch-hint { color: var(--muted); font-size: 12px; }
+.disabled-tag { color: var(--muted); font-size: 12px; }
+.confirm-panel { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; }
+.confirm-panel h3 { margin: 0 0 4px; font-size: 14px; }
+.confirm-option { margin-right: 12px; font-size: 13px; }
+.confirm-actions { display: flex; gap: 8px; margin-top: 10px; }
+.confirm-results { margin: 10px 0 0; padding-left: 18px; font-size: 13px; }
+.result-ok { color: #067647; }
+.result-fail { color: #b42318; }

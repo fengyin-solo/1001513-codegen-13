@@ -28,6 +28,27 @@ class EntryPayload(BaseModel):
     remark: str | None = None
 
 
+class BatchConfirmItem(BaseModel):
+    """批量确认里的单条诉求：哪条链路、给出什么结论。"""
+
+    id: int
+    result: str
+
+
+class BatchConfirmPayload(BaseModel):
+    """一次批量确认提交的全部条目。"""
+
+    items: list[BatchConfirmItem] = Field(default_factory=list)
+
+
+class BatchConfirmResult(BaseModel):
+    """批量确认的逐条回执：部分失败时不影响已成功的条目。"""
+
+    ok: bool
+    message: str
+    results: list[dict[str, Any]] = Field(default_factory=list)
+
+
 
 class StationEntry(BaseModel):
     """观测站点明细结构。"""

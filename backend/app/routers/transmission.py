@@ -5,7 +5,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
-from app.schemas import ActionResult, EntryPayload, PageResult
+from app.schemas import ActionResult, BatchConfirmPayload, BatchConfirmResult, EntryPayload, PageResult
 from app.services.transmission import TransmissionService
 
 router = APIRouter(prefix="/api/transmission", tags=["数据传输"])
@@ -14,6 +14,42 @@ service = TransmissionService()
 
 LIST_FIELDS = ["链路编号", "所属站点", "传输方式", "上报频次", "最近上报时刻", "缺报次数", "链路带宽", "链路状态"]
 STATUSES = ["待开通", "正常上报", "缺报告警", "已停用"]
+
+
+@router.get("/stats")
+def stats() -> dict[str, int]:
+    """缺报统计口径：列表页脚与统计卡片都从这儿取数，保证两边对得上。"""
+    return service.stats()
+
+
+@router.get("/incomplete")
+def incomplete_entries() -> dict[str, Any]:
+    """上报频次或最近上报时刻为空的链路单独列出，逐条说明缺了什么。"""
+    items = service.incomplete_entries()
+    return {"total": len(items), "items": items}
+
+
+@router.get("/duplicates")
+def duplicate_codes() -> dict[str, Any]:
+    """链路编号重复的记录分组返回，前端按组点出来核对。"""
+    items = service.duplicate_codes()
+    return {"total": len(items), "items": items}
+
+
+@router.post("/batch-confirm", response_model=BatchConfirmResult)
+def batch_confirm(payload: BatchConfirmPayload) -> BatchConfirmResult:
+    """批量确认缺报：逐条给出通过或退回；部分失败时保留已成功的条目。"""
+    if not payload.items:
+        return BatchConfirmResult(ok=False, message="请先勾选需要确认的传输链路", results=[])
+    items = [{"id": item.id, "result": item.result} for item in payload.items]
+    results = service.batch_confirm(items)
+    succeeded = sum(1 for item in results if item["ok"])
+    failed = len(results) - succeeded
+    if failed:
+        message = f"批量确认完成：成功 {succeeded} 条，失败 {failed} 条，已成功的条目不会回滚"
+    else:
+        message = f"批量确认完成：{succeeded} 条全部生效"
+    return BatchConfirmResult(ok=failed == 0, message=message, results=results)
 
 
 @router.get("", response_model=PageResult[dict])
