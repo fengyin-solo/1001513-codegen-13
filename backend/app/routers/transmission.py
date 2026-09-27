@@ -1,18 +1,25 @@
-"""数据传输接口：维护传输链路，覆盖开通链路、确认恢复、停用链路等动作。"""
+"""数据传输接口：维护传输链路，覆盖开通链路、确认恢复、停用链路与缺报批量确认等动作。"""
 from __future__ import annotations
 
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
-from app.schemas import ActionResult, EntryPayload, PageResult
+from app.schemas import (
+    ActionResult,
+    EntryPayload,
+    MissingConfirmPayload,
+    MissingConfirmResult,
+    PageResult,
+    TransmissionStats,
+)
 from app.services.transmission import TransmissionService
 
 router = APIRouter(prefix="/api/transmission", tags=["数据传输"])
 
 service = TransmissionService()
 
-LIST_FIELDS = ["链路编号", "所属站点", "传输方式", "上报频次", "最近上报时刻", "缺报次数", "链路带宽", "链路状态"]
+LIST_FIELDS = ["链路编号", "所属站点", "传输方式", "上报频次", "最近上报时刻", "缺报次数", "链路带宽", "链路状态", "确认结果"]
 STATUSES = ["待开通", "正常上报", "缺报告警", "已停用"]
 
 
@@ -28,6 +35,31 @@ def list_entries(
         raise HTTPException(status_code=400, detail="每页最多 200 条，请缩小分页范围")
     items, total = service.list_entries(keyword=keyword, status=status, page=page, size=size)
     return PageResult(items=items, total=total, page=page, size=size)
+
+
+@router.get("/stats", response_model=TransmissionStats)
+def get_stats(
+    keyword: str | None = Query(default=None, description="与列表一致的链路编号过滤"),
+    status: str | None = Query(default=None, description="与列表一致的状态过滤"),
+) -> TransmissionStats:
+    """传输链路统计：页脚与卡片共用 missing_total；另点出信息不完整与编号重复的链路。"""
+    stats = service.get_stats(keyword=keyword, status=status)
+    return TransmissionStats(**stats)
+
+
+@router.post("/missing-confirm/batch", response_model=MissingConfirmResult)
+def batch_confirm_missing(payload: MissingConfirmPayload) -> MissingConfirmResult:
+    """批量确认缺报告警：逐条给出通过/退回；部分失败不影响已成功条目，结果逐条返回。"""
+    items = [item.model_dump() for item in payload.items]
+    result = service.batch_confirm_missing(items, token=payload.token)
+    return MissingConfirmResult(**result)
+
+
+@router.get("/export")
+def export_entries() -> dict[str, Any]:
+    """导出数据传输清单：返回当前过滤条件下的全量数据。"""
+    items, total = service.list_entries(page=1, size=10000)
+    return {"module": "transmission", "total": total, "items": items}
 
 
 @router.get("/{entry_id}", response_model=dict)
@@ -56,10 +88,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
     if entry is None:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
-
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出数据传输清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "transmission", "total": total, "items": items}

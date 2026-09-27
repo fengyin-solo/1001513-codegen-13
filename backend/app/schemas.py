@@ -28,6 +28,52 @@ class EntryPayload(BaseModel):
     remark: str | None = None
 
 
+class MissingConfirmItem(BaseModel):
+    """批量缺报确认里的单条意见：链路 id 加通过/退回。"""
+
+    id: int
+    decision: str  # 通过 / 退回
+
+
+class MissingConfirmPayload(BaseModel):
+    """传输链路缺报批量确认入参。"""
+
+    items: list[MissingConfirmItem]
+    token: str | None = None
+
+
+class MissingConfirmResultItem(BaseModel):
+    """单条链路的确认结果，失败时保留原因，成功时回传最新链路。"""
+
+    id: int
+    status: str  # success / failed / skipped
+    decision: str | None = None
+    message: str
+    entry: dict[str, Any] | None = None
+
+
+class MissingConfirmResult(BaseModel):
+    """批量确认汇总：部分失败时已成功的条目仍然落在 results 里。"""
+
+    ok: bool
+    message: str
+    success_count: int = 0
+    failed_count: int = 0
+    skipped_count: int = 0
+    token: str | None = None
+    results: list[MissingConfirmResultItem] = Field(default_factory=list)
+
+
+class TransmissionStats(BaseModel):
+    """传输链路统计：页脚缺报次数与卡片缺报次数同口径，都取 missing_total。"""
+
+    active_count: int
+    alarm_count: int
+    missing_total: int
+    incomplete: list[dict[str, Any]] = Field(default_factory=list)
+    duplicates: list[dict[str, Any]] = Field(default_factory=list)
+
+
 
 class StationEntry(BaseModel):
     """观测站点明细结构。"""
